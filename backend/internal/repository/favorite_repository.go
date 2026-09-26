@@ -59,3 +59,23 @@ func (r *FavoriteRepository) ListByUser(userID uint, targetType string) ([]model
 	}
 	return items, nil
 }
+
+// ListByTarget returns favorites pointing at a target (tx-aware).
+func (r *FavoriteRepository) ListByTarget(q *gorm.DB, targetType string, targetID uint) ([]model.Favorite, error) {
+	var items []model.Favorite
+	if err := q.Where("target_type = ? AND target_id = ?", targetType, targetID).
+		Order("id ASC").Find(&items).Error; err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+// UpdateTx persists a favorite inside a transaction.
+func (r *FavoriteRepository) UpdateTx(tx *gorm.DB, f *model.Favorite) error {
+	return tx.Save(f).Error
+}
+
+// DeleteTx removes a favorite by id inside a transaction.
+func (r *FavoriteRepository) DeleteTx(tx *gorm.DB, id uint) error {
+	return tx.Delete(&model.Favorite{}, id).Error
+}

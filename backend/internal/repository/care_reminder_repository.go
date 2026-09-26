@@ -85,3 +85,20 @@ func (r *CareReminderRepository) MarkOverdue(userID uint) (int64, error) {
 		Update("status", model.ReminderOverdue)
 	return res.RowsAffected, res.Error
 }
+
+// ListByPlant returns reminders referencing a plant species (tx-aware).
+func (r *CareReminderRepository) ListByPlant(q *gorm.DB, plantID uint) ([]model.CareReminder, error) {
+	var items []model.CareReminder
+	if err := q.Where("plant_species_id = ?", plantID).Order("id ASC").Find(&items).Error; err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+// ReassignPlantTx moves reminders from one plant species to another inside a transaction.
+func (r *CareReminderRepository) ReassignPlantTx(tx *gorm.DB, fromID, toID uint) (int64, error) {
+	res := tx.Model(&model.CareReminder{}).
+		Where("plant_species_id = ?", fromID).
+		Update("plant_species_id", toID)
+	return res.RowsAffected, res.Error
+}

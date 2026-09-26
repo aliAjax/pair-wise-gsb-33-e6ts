@@ -1,6 +1,21 @@
 <template>
   <div class="page" v-if="plant">
     <el-page-header @back="$router.back()" :content="plant.name" />
+    <el-alert
+      v-if="plant.merged_into_id"
+      type="warning"
+      show-icon
+      :closable="false"
+      class="merged-banner"
+      title="该品种为同物异名条目，已归并至保留品种"
+    >
+      <template #default>
+        本条目已从公开品种列表移除，历史花园、收藏、病虫害与养护提醒均已转到保留品种。
+        <el-button size="small" type="warning" plain @click="router.push(`/plants/${plant!.merged_into_id}`)">
+          查看保留品种
+        </el-button>
+      </template>
+    </el-alert>
     <div class="detail-grid">
       <div>
         <ImageCarousel :image-urls="plant.image_urls" />
@@ -16,7 +31,7 @@
           <el-descriptions-item label="浇水频率">{{ plant.water_frequency }}</el-descriptions-item>
         </el-descriptions>
         <p class="desc">{{ plant.description }}</p>
-        <div class="actions">
+        <div class="actions" v-if="!plant.merged_into_id">
           <FavoriteButton target-type="plant" :target-id="plant.id" />
           <el-button type="success" :loading="gardenLoading" @click="addToGarden">🌱 加入我的花园</el-button>
         </div>
@@ -78,6 +93,7 @@ async function addToGarden() {
 
 <style scoped>
 .page { max-width: 1200px; margin: 0 auto; }
+.merged-banner { margin-top: 16px; }
 .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 16px; }
 @media (max-width: 768px) { .detail-grid { grid-template-columns: 1fr; } }
 .alias { color: #999; }

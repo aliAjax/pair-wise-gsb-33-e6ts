@@ -16,6 +16,9 @@ const (
 	LogPlantUpdateFailed        = "plant species update failed: id=%d"
 	LogPlantDeleteSuccess       = "plant species deleted: id=%d"
 	LogPlantListSuccess         = "plant species list success: page=%d page_size=%d"
+	LogPlantMergePreview        = "plant merge preview: keep_id=%d source_id=%d"
+	LogPlantMergeSuccess        = "plant merge success: keep_id=%d source_id=%d"
+	LogPlantMergeFailed         = "plant merge failed: keep_id=%d source_id=%d"
 	LogPlantFavoriteSuccess     = "plant favorite success: plant_id=%d user_id=%d"
 	LogPlantFavoriteFailed      = "plant favorite failed: plant_id=%d user_id=%d"
 	LogArticleCreateSuccess     = "care article created: title=%s"
@@ -45,5 +48,5 @@ const (
 
 // LogTemplateCount returns the number of defined log templates (used by tests).
 func LogTemplateCount() int {
-	return 33
+	return 36
 }

@@ -29,7 +29,25 @@ CREATE TABLE IF NOT EXISTS plant_species (
   water_frequency VARCHAR(255) DEFAULT '',
   description TEXT,
   image_urls JSON,
-  created_at DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)
+  merged_into_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  created_at DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3),
+  KEY idx_plants_merged_into (merged_into_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS plant_merge_records (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  keep_plant_id BIGINT UNSIGNED NOT NULL,
+  keep_plant_name VARCHAR(128) DEFAULT '',
+  source_plant_id BIGINT UNSIGNED NOT NULL,
+  source_plant_name VARCHAR(128) DEFAULT '',
+  operator_id BIGINT UNSIGNED DEFAULT 0,
+  status VARCHAR(16) NOT NULL,
+  detail JSON,
+  error VARCHAR(512) DEFAULT '',
+  created_at DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3),
+  KEY idx_merge_records_keep (keep_plant_id),
+  KEY idx_merge_records_source (source_plant_id),
+  KEY idx_merge_records_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS care_articles (

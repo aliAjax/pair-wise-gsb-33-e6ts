@@ -26,6 +26,7 @@ func Setup(cfg *config.Config, db *gorm.DB, logger *slog.Logger) *gin.Engine {
 	gardenRepo := repository.NewUserGardenRepository(db)
 	questionRepo := repository.NewQuestionRepository(db)
 	answerRepo := repository.NewAnswerRepository(db)
+	mergeRepo := repository.NewPlantMergeRepository(db)
 
 	// services
 	userService := service.NewUserService(userRepo, logger, cfg)
@@ -37,6 +38,7 @@ func Setup(cfg *config.Config, db *gorm.DB, logger *slog.Logger) *gin.Engine {
 	gardenService := service.NewUserGardenService(gardenRepo, logger)
 	questionService := service.NewQuestionService(questionRepo, answerRepo, userService, logger)
 	answerService := service.NewAnswerService(db, answerRepo, questionRepo, logger)
+	mergeService := service.NewPlantMergeService(db, plantRepo, gardenRepo, favoriteRepo, reminderRepo, pestRepo, userRepo, mergeRepo, logger)
 
 	// handlers
 	userHandler := handler.NewUserHandler(userService, logger)
@@ -50,6 +52,7 @@ func Setup(cfg *config.Config, db *gorm.DB, logger *slog.Logger) *gin.Engine {
 	answerHandler := handler.NewAnswerHandler(answerService, logger)
 	uploadHandler := handler.NewUploadHandler(cfg, logger)
 	homeHandler := handler.NewHomeHandler(plantService, articleService)
+	mergeHandler := handler.NewPlantMergeHandler(mergeService, logger)
 
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
@@ -73,6 +76,7 @@ func Setup(cfg *config.Config, db *gorm.DB, logger *slog.Logger) *gin.Engine {
 		registerFavoriteRoutes(v1, cfg, favoriteHandler, limiter)
 		registerGardenRoutes(v1, cfg, gardenHandler, limiter)
 		registerQuestionRoutes(v1, cfg, questionHandler, answerHandler, limiter)
+		registerPlantMergeRoutes(v1, cfg, mergeHandler, limiter)
 		v1.POST("/uploads", middleware.AuthRequired(cfg), limiter.Limit(), uploadHandler.Upload)
 		v1.PUT("/answers/:id/like", middleware.AuthRequired(cfg), answerHandler.Like)
 	}

@@ -130,6 +130,9 @@ gb-61/
 | POST | /api/v1/plants | 管理员（限流） | 新增品种 |
 | PUT | /api/v1/plants/:id | 管理员 | 更新品种 |
 | DELETE | /api/v1/plants/:id | 管理员 | 删除品种 |
+| GET | /api/v1/admin/plant-merges | 管理员 | 品种归并记录列表（含失败「卡住」记录） |
+| POST | /api/v1/admin/plant-merges/preview | 管理员（限流） | 归并预检：受影响用户与花园/收藏/病虫害/提醒关联 |
+| POST | /api/v1/admin/plant-merges | 管理员（限流） | 执行品种归并（单事务，失败整体回滚并落失败记录） |
 | GET | /api/v1/articles | 公开 | 养护文章分页列表/筛选 |
 | GET | /api/v1/articles/:id | 公开 | 文章详情并自增阅读数 |
 | POST | /api/v1/articles | 登录（限流） | 发布文章 |

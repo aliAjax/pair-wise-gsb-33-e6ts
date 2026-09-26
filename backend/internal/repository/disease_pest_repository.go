@@ -75,9 +75,22 @@ func (r *DiseasePestRepository) List(plantSpeciesID uint, keyword string, page, 
 
 // ListByPlant returns all entries related to a plant species.
 func (r *DiseasePestRepository) ListByPlant(plantSpeciesID uint) ([]model.DiseasePest, error) {
+	return r.ListByPlantWith(r.db, plantSpeciesID)
+}
+
+// ListByPlantWith returns all entries related to a plant species using the given handle (tx-aware).
+func (r *DiseasePestRepository) ListByPlantWith(q *gorm.DB, plantSpeciesID uint) ([]model.DiseasePest, error) {
 	var items []model.DiseasePest
-	if err := r.db.Where("plant_species_id = ?", plantSpeciesID).Find(&items).Error; err != nil {
+	if err := q.Where("plant_species_id = ?", plantSpeciesID).Order("id ASC").Find(&items).Error; err != nil {
 		return nil, err
 	}
 	return items, nil
+}
+
+// ReassignPlantTx moves disease/pest entries from one plant species to another inside a transaction.
+func (r *DiseasePestRepository) ReassignPlantTx(tx *gorm.DB, fromID, toID uint) (int64, error) {
+	res := tx.Model(&model.DiseasePest{}).
+		Where("plant_species_id = ?", fromID).
+		Update("plant_species_id", toID)
+	return res.RowsAffected, res.Error
 }

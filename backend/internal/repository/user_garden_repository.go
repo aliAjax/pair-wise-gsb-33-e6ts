@@ -71,3 +71,22 @@ func (r *UserGardenRepository) ListByUser(userID uint) ([]model.UserGarden, erro
 	}
 	return items, nil
 }
+
+// ListByPlant returns garden items referencing a plant species (tx-aware).
+func (r *UserGardenRepository) ListByPlant(q *gorm.DB, plantID uint) ([]model.UserGarden, error) {
+	var items []model.UserGarden
+	if err := q.Where("plant_species_id = ?", plantID).Order("id ASC").Find(&items).Error; err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+// UpdateTx persists a garden item inside a transaction.
+func (r *UserGardenRepository) UpdateTx(tx *gorm.DB, g *model.UserGarden) error {
+	return tx.Save(g).Error
+}
+
+// DeleteTx removes a garden item by id inside a transaction.
+func (r *UserGardenRepository) DeleteTx(tx *gorm.DB, id uint) error {
+	return tx.Delete(&model.UserGarden{}, id).Error
+}

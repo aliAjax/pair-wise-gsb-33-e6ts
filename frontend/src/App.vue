@@ -11,6 +11,7 @@
         <el-menu-item index="/garden">我的花园</el-menu-item>
         <el-menu-item index="/questions">问答社区</el-menu-item>
         <el-menu-item index="/quiz">养护测验</el-menu-item>
+        <el-menu-item v-if="auth.isAdmin" index="/admin/plant-merges">归并台</el-menu-item>
       </el-menu>
       <div class="user-area">
         <template v-if="auth.token">
@@ -34,11 +35,20 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 
 const auth = useAuthStore()
 const router = useRouter()
+
+// A page reload keeps the token but clears the in-memory user; refetch it so
+// role-dependent UI (e.g. the admin merge console entry) renders correctly.
+onMounted(() => {
+  if (auth.token && !auth.user) {
+    auth.fetchProfile()
+  }
+})
 
 function onCommand(cmd: string) {
   if (cmd === 'profile') {

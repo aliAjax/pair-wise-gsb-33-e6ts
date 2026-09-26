@@ -79,6 +79,18 @@ func (r *UserRepository) List(page, pageSize int) ([]model.User, int64, error) {
 	return users, total, nil
 }
 
+// ListByIDs returns users matching the given ids (tx-aware).
+func (r *UserRepository) ListByIDs(q *gorm.DB, ids []uint) ([]model.User, error) {
+	if len(ids) == 0 {
+		return []model.User{}, nil
+	}
+	var users []model.User
+	if err := q.Where("id IN ?", ids).Find(&users).Error; err != nil {
+		return nil, err
+	}
+	return users, nil
+}
+
 func isDuplicate(err error) bool {
 	return err != nil && (strings.Contains(err.Error(), "Duplicate entry") ||
 		strings.Contains(err.Error(), "duplicate key"))

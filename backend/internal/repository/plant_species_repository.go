@@ -31,8 +31,13 @@ func (r *PlantSpeciesRepository) Create(p *model.PlantSpecies) error {
 
 // FindByID locates a plant species by id.
 func (r *PlantSpeciesRepository) FindByID(id uint) (*model.PlantSpecies, error) {
+	return r.FindByIDWith(r.db, id)
+}
+
+// FindByIDWith locates a plant species by id using the given handle (tx-aware).
+func (r *PlantSpeciesRepository) FindByIDWith(q *gorm.DB, id uint) (*model.PlantSpecies, error) {
 	var p model.PlantSpecies
-	if err := r.db.First(&p, id).Error; err != nil {
+	if err := q.First(&p, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrNotFound
 		}
@@ -44,6 +49,11 @@ func (r *PlantSpeciesRepository) FindByID(id uint) (*model.PlantSpecies, error) 
 // Update persists changes on a plant species.
 func (r *PlantSpeciesRepository) Update(p *model.PlantSpecies) error {
 	return r.db.Save(p).Error
+}
+
+// UpdateTx persists changes on a plant species inside a transaction.
+func (r *PlantSpeciesRepository) UpdateTx(tx *gorm.DB, p *model.PlantSpecies) error {
+	return tx.Save(p).Error
 }
 
 // Delete removes a plant species by id.
@@ -59,10 +69,11 @@ func (r *PlantSpeciesRepository) Delete(id uint) error {
 }
 
 // List filters plant species by type, family and keyword with pagination.
+// Merged-away synonyms never appear in the public list.
 func (r *PlantSpeciesRepository) List(speciesType, family, keyword string, page, pageSize int) ([]model.PlantSpecies, int64, error) {
 	var items []model.PlantSpecies
 	var total int64
-	q := r.db.Model(&model.PlantSpecies{})
+	q := r.db.Model(&model.PlantSpecies{}).Where("merged_into_id = 0")
 	if speciesType != "" {
 		q = q.Where("type = ?", speciesType)
 	}
@@ -85,7 +96,7 @@ func (r *PlantSpeciesRepository) List(speciesType, family, keyword string, page,
 // ListHot returns the most recently added plants for the home page.
 func (r *PlantSpeciesRepository) ListHot(limit int) ([]model.PlantSpecies, error) {
 	var items []model.PlantSpecies
-	if err := r.db.Order("id DESC").Limit(limit).Find(&items).Error; err != nil {
+	if err := r.db.Where("merged_into_id = 0").Order("id DESC").Limit(limit).Find(&items).Error; err != nil {
 		return nil, err
 	}
 	return items, nil

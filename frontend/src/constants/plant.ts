@@ -23,6 +23,7 @@ export interface PlantSpecies {
   water_frequency: string
   description: string
   image_urls: string
+  merged_into_id: number
   created_at: string
 }
 

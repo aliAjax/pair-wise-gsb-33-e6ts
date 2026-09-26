@@ -15,6 +15,7 @@ const routes: RouteRecordRaw[] = [
   { path: '/questions/:id', name: 'questionDetail', component: () => import('@/pages/QuestionDetail.vue'), meta: { title: '问题详情' } },
   { path: '/quiz', name: 'quiz', component: () => import('@/pages/Quiz.vue'), meta: { title: '养护测验' } },
   { path: '/profile', name: 'profile', component: () => import('@/pages/Profile.vue'), meta: { title: '个人中心', requiresAuth: true } },
+  { path: '/admin/plant-merges', name: 'plantMergeAdmin', component: () => import('@/pages/PlantMergeConsole.vue'), meta: { title: '品种归并台', requiresAuth: true, roles: ['admin'] } },
   { path: '/login', name: 'login', component: () => import('@/pages/Login.vue'), meta: { title: '登录' } },
 ]
 
@@ -23,12 +24,26 @@ const router = createRouter({
   routes,
 })
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   document.title = `${to.meta.title || ''} - 植物养护知识百科平台`
   if (to.meta.requiresAuth) {
     const auth = useAuthStore()
     if (!auth.token) {
       return { path: '/login', query: { redirect: to.fullPath } }
+    }
+    const roles = to.meta.roles as string[] | undefined
+    if (roles && roles.length > 0) {
+      // A page reload keeps the token in localStorage but clears the user snapshot.
+      if (!auth.user) {
+        try {
+          await auth.fetchProfile()
+        } catch {
+          return { path: '/' }
+        }
+      }
+      if (!roles.includes(auth.user?.role ?? '')) {
+        return { path: '/' }
+      }
     }
   }
   return true
