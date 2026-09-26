@@ -12,10 +12,16 @@ import (
 	"github.com/gbplantwiki/gbplantwiki/internal/util"
 )
 
+// PlantGuard validates that a target plant is still active (not merged away).
+type PlantGuard interface {
+	EnsureActiveForAssociation(id uint) error
+}
+
 // UserGardenService implements "my garden" list logic.
 type UserGardenService struct {
 	repo   *repository.UserGardenRepository
 	logger *slog.Logger
+	guard  PlantGuard
 }
 
 // NewUserGardenService creates a UserGardenService.
@@ -23,9 +29,17 @@ func NewUserGardenService(repo *repository.UserGardenRepository, logger *slog.Lo
 	return &UserGardenService{repo: repo, logger: logger}
 }
 
+// SetPlantGuard wires the active-plant validation used by Add.
+func (s *UserGardenService) SetPlantGuard(g PlantGuard) { s.guard = g }
+
 // Add adds a plant to a user's garden.
 func (s *UserGardenService) Add(userID uint, g *model.UserGarden) (*model.UserGarden, error) {
 	g.UserID = userID
+	if s.guard != nil {
+		if err := s.guard.EnsureActiveForAssociation(g.PlantSpeciesID); err != nil {
+			return nil, err
+		}
+	}
 	if g.OwnedSince.IsZero() {
 		g.OwnedSince = time.Now()
 	}

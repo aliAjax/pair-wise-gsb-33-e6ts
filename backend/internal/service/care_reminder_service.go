@@ -18,6 +18,7 @@ import (
 type CareReminderService struct {
 	repo   *repository.CareReminderRepository
 	logger *slog.Logger
+	guard  PlantGuard
 }
 
 // NewCareReminderService creates a CareReminderService.
@@ -25,9 +26,17 @@ func NewCareReminderService(repo *repository.CareReminderRepository, logger *slo
 	return &CareReminderService{repo: repo, logger: logger}
 }
 
+// SetPlantGuard wires active-plant validation for reminder creation.
+func (s *CareReminderService) SetPlantGuard(g PlantGuard) { s.guard = g }
+
 // Create adds a reminder for the current user.
 func (s *CareReminderService) Create(userID uint, m *model.CareReminder) (*model.CareReminder, error) {
 	m.UserID = userID
+	if m.PlantSpeciesID != 0 && s.guard != nil {
+		if err := s.guard.EnsureActiveForAssociation(m.PlantSpeciesID); err != nil {
+			return nil, err
+		}
+	}
 	if m.Status == "" {
 		m.Status = model.ReminderPending
 	}

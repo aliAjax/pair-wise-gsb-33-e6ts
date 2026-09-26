@@ -11,6 +11,7 @@
         <el-menu-item index="/garden">我的花园</el-menu-item>
         <el-menu-item index="/questions">问答社区</el-menu-item>
         <el-menu-item index="/quiz">养护测验</el-menu-item>
+        <el-menu-item v-if="auth.isAdmin" index="/admin/plant-merge">归并台</el-menu-item>
       </el-menu>
       <div class="user-area">
         <template v-if="auth.token">
@@ -18,6 +19,7 @@
             <span class="user-name">{{ auth.user?.nickname || auth.user?.username }}</span>
             <template #dropdown>
               <el-dropdown-menu>
+                <el-dropdown-item v-if="auth.isAdmin" command="merge">品种归并台</el-dropdown-item>
                 <el-dropdown-item command="profile">个人中心</el-dropdown-item>
                 <el-dropdown-item command="logout">退出登录</el-dropdown-item>
               </el-dropdown-menu>
@@ -43,6 +45,8 @@ const router = useRouter()
 function onCommand(cmd: string) {
   if (cmd === 'profile') {
     router.push('/profile')
+  } else if (cmd === 'merge') {
+    router.push('/admin/plant-merge')
   } else if (cmd === 'logout') {
     auth.logout()
     router.push('/')

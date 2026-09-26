@@ -56,6 +56,25 @@ func (s *PlantSpeciesService) Get(id uint) (*model.PlantSpecies, error) {
 	return p, nil
 }
 
+// EnsureActiveForAssociation rejects garden/favorite/reminder writes that target
+// a plant species which has been merged into another one, preventing new links
+// to a variety already hidden from the public list.
+func (s *PlantSpeciesService) EnsureActiveForAssociation(id uint) error {
+	mergedInto, err := s.repo.MergedInto(id)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return util.NewAppError(404, constants.CodeNotFound,
+				fmt.Sprintf("PlantSpecies[id=%d] not found", id))
+		}
+		return fmt.Errorf("plant species active check: %w", err)
+	}
+	if mergedInto != 0 {
+		return util.NewAppError(409, constants.CodeConflict,
+			fmt.Sprintf("PlantSpecies[id=%d] has been merged into #%d; use the kept species instead", id, mergedInto))
+	}
+	return nil
+}
+
 // Update modifies an existing plant species (admin only).
 func (s *PlantSpeciesService) Update(id uint, p *model.PlantSpecies) (*model.PlantSpecies, error) {
 	exist, err := s.repo.FindByID(id)

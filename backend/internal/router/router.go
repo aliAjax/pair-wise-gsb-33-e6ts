@@ -19,6 +19,7 @@ func Setup(cfg *config.Config, db *gorm.DB, logger *slog.Logger) *gin.Engine {
 	// repositories
 	userRepo := repository.NewUserRepository(db)
 	plantRepo := repository.NewPlantSpeciesRepository(db)
+	mergeRepo := repository.NewPlantMergeRepository(db)
 	articleRepo := repository.NewCareArticleRepository(db)
 	pestRepo := repository.NewDiseasePestRepository(db)
 	reminderRepo := repository.NewCareReminderRepository(db)
@@ -30,6 +31,7 @@ func Setup(cfg *config.Config, db *gorm.DB, logger *slog.Logger) *gin.Engine {
 	// services
 	userService := service.NewUserService(userRepo, logger, cfg)
 	plantService := service.NewPlantSpeciesService(plantRepo, logger)
+	mergeService := service.NewPlantMergeService(mergeRepo, logger)
 	articleService := service.NewCareArticleService(articleRepo, logger)
 	pestService := service.NewDiseasePestService(pestRepo, logger)
 	reminderService := service.NewCareReminderService(reminderRepo, logger)
@@ -38,9 +40,15 @@ func Setup(cfg *config.Config, db *gorm.DB, logger *slog.Logger) *gin.Engine {
 	questionService := service.NewQuestionService(questionRepo, answerRepo, userService, logger)
 	answerService := service.NewAnswerService(db, answerRepo, questionRepo, logger)
 
+	// Reject new garden/favorite/reminder links to plants already merged away.
+	gardenService.SetPlantGuard(plantService)
+	favoriteService.SetPlantGuard(plantService)
+	reminderService.SetPlantGuard(plantService)
+
 	// handlers
 	userHandler := handler.NewUserHandler(userService, logger)
 	plantHandler := handler.NewPlantSpeciesHandler(plantService, logger)
+	mergeHandler := handler.NewPlantMergeHandler(mergeService, logger)
 	articleHandler := handler.NewCareArticleHandler(articleService, logger)
 	pestHandler := handler.NewDiseasePestHandler(pestService, logger)
 	reminderHandler := handler.NewCareReminderHandler(reminderService, logger)
@@ -66,7 +74,7 @@ func Setup(cfg *config.Config, db *gorm.DB, logger *slog.Logger) *gin.Engine {
 	{
 		v1.GET("/home/overview", homeHandler.Overview)
 		registerUserRoutes(v1, cfg, userHandler, limiter)
-		registerPlantRoutes(v1, cfg, plantHandler, limiter)
+		registerPlantRoutes(v1, cfg, plantHandler, mergeHandler, limiter)
 		registerArticleRoutes(v1, cfg, articleHandler, limiter)
 		registerPestRoutes(v1, cfg, pestHandler, limiter)
 		registerReminderRoutes(v1, cfg, reminderHandler, limiter)

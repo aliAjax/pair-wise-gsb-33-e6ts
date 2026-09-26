@@ -1,7 +1,21 @@
 <template>
   <div class="page" v-if="plant">
     <el-page-header @back="$router.back()" :content="plant.name" />
-    <div class="detail-grid">
+    <el-alert
+      v-if="plant.merged_into_id"
+      class="merged-alert"
+      type="warning"
+      show-icon
+      :closable="false"
+      title="该品种已作为同物异名归并到保留品种"
+    >
+      <template #default>
+        本条目已从公开品种列表移除，养护信息以保留品种为准，
+        <el-link type="primary" :underline="false" @click="goKeeper">点此前往保留品种 #{{ plant.merged_into_id }}</el-link>
+        。花园、收藏与提醒均已自动迁移，不会断链。
+      </template>
+    </el-alert>
+    <div class="detail-grid" :class="{ 'is-merged': plant.merged_into_id }">
       <div>
         <ImageCarousel :image-urls="plant.image_urls" />
       </div>
@@ -17,8 +31,9 @@
         </el-descriptions>
         <p class="desc">{{ plant.description }}</p>
         <div class="actions">
-          <FavoriteButton target-type="plant" :target-id="plant.id" />
-          <el-button type="success" :loading="gardenLoading" @click="addToGarden">🌱 加入我的花园</el-button>
+          <FavoriteButton v-if="!plant.merged_into_id" target-type="plant" :target-id="plant.id" />
+          <el-button v-if="!plant.merged_into_id" type="success" :loading="gardenLoading" @click="addToGarden">🌱 加入我的花园</el-button>
+          <el-tag v-else type="info" size="large">已归并品种，数据已迁移至保留品种</el-tag>
         </div>
       </el-card>
     </div>
@@ -57,8 +72,16 @@ const gardenLoading = ref(false)
 
 onMounted(async () => {
   plant.value = await getPlant(route.params.id as string)
-  pests.value = (await listPests({ plant_species_id: plant.value.id, page_size: 20 })).list
+  // Merged plants carry no associations anymore; show the kept plant's pests.
+  const pestPlantID = plant.value.merged_into_id || plant.value.id
+  pests.value = (await listPests({ plant_species_id: pestPlantID, page_size: 20 })).list
 })
+
+function goKeeper() {
+  if (plant.value?.merged_into_id) {
+    router.push(`/plants/${plant.value.merged_into_id}`)
+  }
+}
 
 async function addToGarden() {
   if (!isLoggedIn.value) {
@@ -78,7 +101,9 @@ async function addToGarden() {
 
 <style scoped>
 .page { max-width: 1200px; margin: 0 auto; }
+.merged-alert { margin-top: 12px; }
 .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 16px; }
+.detail-grid.is-merged { opacity: 0.75; }
 @media (max-width: 768px) { .detail-grid { grid-template-columns: 1fr; } }
 .alias { color: #999; }
 .desc { margin-top: 12px; line-height: 1.6; }

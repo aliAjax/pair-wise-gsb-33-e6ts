@@ -41,6 +41,19 @@ func (r *PlantSpeciesRepository) FindByID(id uint) (*model.PlantSpecies, error) 
 	return &p, nil
 }
 
+// MergedInto reports the id of the plant species the given id was merged into,
+// or 0 when the plant exists and is still active. ErrNotFound when absent.
+func (r *PlantSpeciesRepository) MergedInto(id uint) (uint, error) {
+	var p model.PlantSpecies
+	if err := r.db.Select("id", "merged_into_id").First(&p, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return 0, ErrNotFound
+		}
+		return 0, err
+	}
+	return p.MergedIntoID, nil
+}
+
 // Update persists changes on a plant species.
 func (r *PlantSpeciesRepository) Update(p *model.PlantSpecies) error {
 	return r.db.Save(p).Error
@@ -59,10 +72,11 @@ func (r *PlantSpeciesRepository) Delete(id uint) error {
 }
 
 // List filters plant species by type, family and keyword with pagination.
+// Plants merged into another species are hidden from the public list.
 func (r *PlantSpeciesRepository) List(speciesType, family, keyword string, page, pageSize int) ([]model.PlantSpecies, int64, error) {
 	var items []model.PlantSpecies
 	var total int64
-	q := r.db.Model(&model.PlantSpecies{})
+	q := r.db.Model(&model.PlantSpecies{}).Where("merged_into_id = 0")
 	if speciesType != "" {
 		q = q.Where("type = ?", speciesType)
 	}
@@ -82,10 +96,11 @@ func (r *PlantSpeciesRepository) List(speciesType, family, keyword string, page,
 	return items, total, nil
 }
 
-// ListHot returns the most recently added plants for the home page.
+// ListHot returns the most recently added plants for the home page, excluding
+// plants that have been merged away.
 func (r *PlantSpeciesRepository) ListHot(limit int) ([]model.PlantSpecies, error) {
 	var items []model.PlantSpecies
-	if err := r.db.Order("id DESC").Limit(limit).Find(&items).Error; err != nil {
+	if err := r.db.Where("merged_into_id = 0").Order("id DESC").Limit(limit).Find(&items).Error; err != nil {
 		return nil, err
 	}
 	return items, nil

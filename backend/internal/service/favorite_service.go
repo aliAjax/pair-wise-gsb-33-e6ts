@@ -15,6 +15,7 @@ import (
 type FavoriteService struct {
 	repo   *repository.FavoriteRepository
 	logger *slog.Logger
+	guard  PlantGuard
 }
 
 // NewFavoriteService creates a FavoriteService.
@@ -22,11 +23,19 @@ func NewFavoriteService(repo *repository.FavoriteRepository, logger *slog.Logger
 	return &FavoriteService{repo: repo, logger: logger}
 }
 
+// SetPlantGuard wires active-plant validation for plant favorites.
+func (s *FavoriteService) SetPlantGuard(g PlantGuard) { s.guard = g }
+
 // Add favorites a target for a user.
 func (s *FavoriteService) Add(userID uint, targetType string, targetID uint) (*model.Favorite, error) {
 	if !constants.IsValidFavoriteTarget(targetType) {
 		return nil, util.NewAppError(422, constants.CodeValidationError,
 			fmt.Sprintf("Favorite[target_type=%s] add failed: invalid target type", targetType))
+	}
+	if targetType == "plant" && s.guard != nil {
+		if err := s.guard.EnsureActiveForAssociation(targetID); err != nil {
+			return nil, err
+		}
 	}
 	f := &model.Favorite{UserID: userID, TargetType: targetType, TargetID: targetID}
 	if err := s.repo.Create(f); err != nil {
